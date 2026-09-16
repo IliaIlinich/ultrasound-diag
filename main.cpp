@@ -2,6 +2,9 @@
 #include <iostream>
 #include <cstring>
 #include <modbus.h>
+
+#define PORT "/dev/ttyAMA0"
+
 using namespace std;
 
 int main(const int argc, char *argv[]) {
@@ -21,11 +24,13 @@ int main(const int argc, char *argv[]) {
     }
 
     // 2. Initialize Modbus RTU context
-    modbus_t *ctx = modbus_new_rtu("/dev/ttyAMAO", 115200, 'N', 8, 1);
+    modbus_t *ctx = modbus_new_rtu(PORT, 115200, 'N', 8, 1);
     if (ctx == nullptr) {
         cerr << "Unable to create the libmodbus context" << endl;
         return -1;
     }
+
+    modbus_set_response_timeout(ctx, 0, 500000);
 
     // Set slave address to the sensor's default (0x01)
     modbus_set_slave(ctx, 1);
@@ -37,15 +42,30 @@ int main(const int argc, char *argv[]) {
         return -1;
     }
 
-    // 4. Read the Real-Time Distance Register
+    // 4. Read the Real-Time Distance Register with Retry Logic
     uint16_t tab_reg[1];
-    // Register 0x0101 holds the real-time distance value
-    int rc = modbus_read_registers(ctx, 0x0101, 1, tab_reg);
+    int rc = -1;
+    int max_retries = 3;
+
+    for (int attempt = 1; attempt <= max_retries; ++attempt) {
+        // Flush the buffer to clear out any UART automatic 0xFF frames
+        modbus_flush(ctx);
+
+        // Register 0x0101 holds the real-time distance value
+        rc = modbus_read_registers(ctx, 0x0101, 1, tab_reg);
+
+        if (rc != -1) {
+            break; // Success, exit the retry loop
+        }
+
+        // If it fails, the loop will flush and try again automatically
+    }
 
     if (rc == -1) {
-        cerr << "Modbus read error: " << modbus_strerror(errno) << endl;
+        std::cerr << "Modbus read failed after " << max_retries << " attempts: "
+                  << modbus_strerror(errno) << std::endl;
     } else {
-        cout << "Sensor Distance: " << tab_reg[0] << " mm" << endl;
+        std::cout << "Sensor Distance (" << PORT << "): " << tab_reg[0] << " mm" << std::endl;
     }
 
     // 5. Cleanup
