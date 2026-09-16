@@ -21,8 +21,7 @@ int main(const int argc, char *argv[]) {
     }
 
     // 2. Initialize Modbus RTU context
-    // Note: Update "/dev/ttyUSB0" if your sensor is mapped to a different port (e.g., /dev/ttyAMA0)
-    modbus_t *ctx = modbus_new_rtu("/dev/ttyUSB0", 115200, 'N', 8, 1);
+    modbus_t *ctx = modbus_new_rtu("/dev/ttyAMAO", 115200, 'N', 8, 1);
     if (ctx == nullptr) {
         cerr << "Unable to create the libmodbus context" << endl;
         return -1;
