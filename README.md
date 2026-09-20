@@ -35,11 +35,7 @@ The binary `ultrasound-diag` will be created in `build/`.
 
 ## Usage
 
-> Stop any service using the serial port first:
-
-```bash
-sudo systemctl stop mdetector-service
-```
+> Stop any service using the serial port first
 
 ### Read distance
 
